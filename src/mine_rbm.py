@@ -88,15 +88,6 @@ class CMyRBM:
 	def my_rbm(self):
 		X = self.train_x
 		Y = self.train_y
-<<<<<<< HEAD
-		hidden_node_num = 150
-		#W = np.zeros((64, hidden_node_num))
-		W = np.reshape(np.array(np.random.normal(0, 0.002, 64*hidden_node_num)), (64, hidden_node_num))
-		B = np.zeros((hidden_node_num))
-		C = np.zeros((64))
-		iter_num = 15000
-		alpha    = 1.5
-=======
 		input_node_num  = X.shape[1]
 		hidden_node_num = self.HNum
 		self.W = np.reshape(np.array( \
@@ -104,7 +95,6 @@ class CMyRBM:
 					(input_node_num, hidden_node_num))
 		self.B = np.zeros((hidden_node_num))
 		self.C = np.zeros((input_node_num))
->>>>>>> FETCH_HEAD
 
 		for i in xrange(self.iternum):
 			del_W, del_B, del_C = self.getKCDGrad(X, k=10)
@@ -121,16 +111,8 @@ class CMyRBM:
 		for i in range(k):
 			if i == 0:
 				v_input = X
-<<<<<<< HEAD
-			h_input = np.dot(v_input, W) + B
-			h_prob  = self.sigmoid(h_input)
-			h_sample= self.sample(h_prob)
-			v_prob  = np.dot(h_sample, W.T)+C
-			v_sample= self.sample(v_prob)
-=======
 			h_sample= self.Sample_h_given_v(v_input)
 			v_sample= self.Sample_v_given_h(h_sample)
->>>>>>> FETCH_HEAD
 			v_input = v_sample
 		Prob_h_v0 = self.compute_h_prob_given_v(X)
 		Prob_h_vk = self.compute_h_prob_given_v(v_sample)
