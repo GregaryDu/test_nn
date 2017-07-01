@@ -159,6 +159,6 @@ class CMyRBM:
 		test_pred    = recall_model.predict(self.test_x)
 		print ('reload saved model, test accuracy : ', metrics.accuracy_score(self.test_y, test_pred))
 if __name__=='__main__':
-	CTest = CMyRBM(hidden_num=200, iternum=1500, learningrate=0.5)
+	CTest = CMyRBM(hidden_num=100, iternum=1500, learningrate=0.0009)
 	CTest.read_data_split()
 	CTest.my_rbm()
