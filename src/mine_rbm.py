@@ -20,7 +20,7 @@ from sklearn.cross_validation import train_test_split
 
 
 class CMyRBM:
-	def __init__(self, hidden_num = 150, iternum=1000, learningrate=0.05, k_step=1):
+	def __init__(self, hidden_num = 150, iternum=1000, learningrate=0.05, k_step=1, k_span=3):
 		self.train_x = ''
 		self.train_y = ''
 		self.test_x  = ''
@@ -31,6 +31,7 @@ class CMyRBM:
 		self.C = ''
 		self.HNum = hidden_num
 		self.k_step = k_step
+		self.k_span = k_span
 		self.iternum = iternum
 		self.learningrate = learningrate
 	def __del__(self):
@@ -44,9 +45,14 @@ class CMyRBM:
 		self.C = ''
 		self.HNum = ''
 		self.k_step = ''
+		self.k_span = ''
 		self.iternum = ''
 		self.learningrate = ''
 	def single2onehotmat(self, vec, span_num=1):
+		if span_num>=1:
+			span_num = span_num
+		else:
+			span_num = self.k_span
 		'''
 		# (m,) -> (m, 10*span_num)
 		for example span_num == 3
@@ -67,14 +73,15 @@ class CMyRBM:
 		y    = digits.target
 		train_x, test_x, train_y, test_y = train_test_split(x, y, test_size=0.2, random_state=50)
 		self.train_x = np.where(train_x>0, 1, 0)
-		self.train_y = self.single2onehotmat(train_y, 2)
+		self.train_y = self.single2onehotmat(train_y, self.k_span)
 		self.test_x  = np.where(test_x>0, 1, 0)
-		self.test_y  = self.single2onehotmat(test_y, 2)
+		self.test_y  = self.single2onehotmat(test_y, self.k_span)
 		print ('train_x.shape', train_x.shape)
 		print ('train_y.shape', train_y.shape)
 		print ('train_x:\n', self.train_x[0:10, 0:5])
 		print ('train_y:\n', self.train_y[0:10, :])
 		print ('real_y:', train_y[0:10])
+		print ('test vote-label method', self.get_label_by_kspan(self.train_y[0:10,:]))
 
 	def sigmoid(self, x):
 		return 1/(1+np.exp(-x))
@@ -94,7 +101,7 @@ class CMyRBM:
 		print (metrics.confusion_matrix(real_label, pred_label, np.unique(real_label)))
 
 	def my_rbm(self):
-		X = np.hstack(self.train_x, self.train_y) ## 训练X:Y的联合分布 ##
+		X = np.hstack((self.train_x, self.train_y)) ## 训练X:Y的联合分布 ##
 		Y = self.train_y
 		input_node_num  = X.shape[1]
 		print ('input_node_num:', input_node_num, \
@@ -131,13 +138,14 @@ class CMyRBM:
 		pass
 	def compute_pred_error(self, only_x, only_y):
 		x_row, x_col = only_x.shape
+		print ('in compute_pred_error function:', 'x_row:', x_row, 'x_col:', x_col)
 		V_sample     = self.get_partial_pred_by_partial_input(only_x)
 		mean_error   = np.mean((only_y-V_sample)**2)
-		pred_error   = self.votePredLabel(V_sample, only_y)
+		pred_error   = self.VotePredLabel(V_sample, only_y)
 		return pred_error, mean_error
 	def VotePredLabel(self, y_sample, only_y):
 		y_sample_label = self.get_label_by_kspan(y_sample)
-		y_real_label   = slef.get_label_by_kspan(only_y)
+		y_real_label   = self.get_label_by_kspan(only_y)
 		return np.mean((y_real_label-y_sample_label)**2)
 	def get_label_by_kspan(self, y_mat):
 		k_span   = self.k_span
@@ -145,17 +153,17 @@ class CMyRBM:
 		single_vote_res = [0 for i in range(10)]
 		all_vote_res    = np.zeros((y_row,))
 		for k in xrange(y_row):
-			pos = np.where(y_map[k,:]==1)
+			pos = np.where(y_mat[k,:]==1)[0]
 			label_vote = [int(i/k_span) for i in pos]
 			for i in label_vote:
 				single_vote_res[i] += 1
-			pred_lable = np.argmax(vote_res)
+			pred_label = np.argmax(single_vote_res)
 			all_vote_res[k] = pred_label
 			single_vote_res = [0 for i in range(10)]
 		return all_vote_res
-	def get_partial_pred_by_partial_input(self, only_x)
+	def get_partial_pred_by_partial_input(self, only_x):
 		x_row, x_col = only_x.shape
-		H_input = np.dot(only_x, self.W[0:-x_col]) + self.B
+		H_input = np.dot(only_x, self.W[0:x_col, :]) + self.B
 		H_prob  = self.sigmoid(H_input)
 		H_sample= self.sample(H_prob)
 		V_input = np.dot(H_sample, self.W[x_col:, :].T) + self.C[x_col:]
@@ -168,8 +176,8 @@ class CMyRBM:
 		y_row, y_col = only_y.shape
 		print ('x_row:', x_row, 'x_col:', x_col, 'y_row:', y_row, 'y_col:', y_col)
 		for i in xrange(y_row):
-			print ('sample:', i, 'real_y:', only_y[i, :])
-			print ('sample:', i, 'pred_y:', V_sample[i, :])
+			print ('sample:', i, 'real_y:', [int(j) for j in only_y[i, :]])
+			print ('sample:', i, 'pred_y:', [int(j) for j in V_sample[i, :]])
 			
 	def getKCDGrad(self, X, k=1): # del_W = np.zeros_like(W) #
 		for i in range(k):
@@ -219,6 +227,6 @@ class CMyRBM:
 		pass
 
 if __name__=='__main__':
-	CTest = CMyRBM(hidden_num=100, iternum=1500, learningrate=0.0009)
+	CTest = CMyRBM(hidden_num=150, iternum=15000, learningrate=0.000005)
 	CTest.read_data_split()
-#CTest.my_rbm()
+	CTest.my_rbm()
