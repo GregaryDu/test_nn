@@ -15,10 +15,7 @@ from __future__ import print_function
 import logging
 import numpy as np
 from sklearn import metrics
-from sklearn import datasets
-from sklearn.cross_validation import train_test_split
 from tensorflow.examples.tutorials.mnist import input_data
-mnist = input_data.read_data_sets('./MNIST_data', one_hot=True)
 
 class CMyRBM:
 	def __init__(self, hidden_num = 150, iternum=1000, learningrate=0.05, k_step=1, k_span=3):
@@ -49,11 +46,7 @@ class CMyRBM:
 		self.k_span = ''
 		self.iternum = ''
 		self.learningrate = ''
-	def single2onehotmat(self, vec, span_num=1):
-		if span_num>=1:
-			span_num = span_num
-		else:
-			span_num = self.k_span
+	def single2onehotmat(self, vec):
 		'''
 		# (m,) -> (m, 10*span_num)
 		for example span_num == 3
@@ -61,6 +54,7 @@ class CMyRBM:
 			res-> [0,0,0, 0,0,0, 0,0,0, 1,1,1, 0,0,0,
 				   0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0]
 		'''
+		span_num = self.k_span
 		row = vec.shape[0]
 		res = np.zeros((row, 10*span_num))
 		for i in xrange(row):
@@ -69,21 +63,18 @@ class CMyRBM:
 		return res
 		
 	def read_data_split(self):
-		digits = datasets.load_digits()
-		x    = digits.data
-		y    = digits.target
-		train_x, test_x, train_y, test_y = train_test_split(x, y, test_size=0.2, random_state=50)
-		self.train_x = np.where(train_x>0, 1, 0)
-		self.train_y = self.single2onehotmat(train_y, self.k_span)
-		self.test_x  = np.where(test_x>0, 1, 0)
-		self.test_y  = self.single2onehotmat(test_y, self.k_span)
-		print ('train_x.shape', train_x.shape)
-		print ('train_y.shape', train_y.shape)
-		print ('train_x:\n', self.train_x[0:10, 0:5])
-		print ('train_y:\n', self.train_y[0:10, :])
-		print ('real_y:', train_y[0:10])
-		print ('test vote-label method', self.get_label_by_kspan(self.train_y[0:10,:]))
-
+		mnist = input_data.read_data_sets('./MNIST_data', one_hot=False)
+		self.train_data = mnist.train
+		self.test_data  = mnist.test
+#		self.train_x = np.where(train_x>0, 1, 0)
+#		self.train_y = self.single2onehotmat(train_y, self.k_span)
+		self.test_x  = np.where(self.test_data.images>0, 1, 0)
+		self.test_y  = self.single2onehotmat(self.test_data.labels)
+		print ('train_data.images.shape', self.train_data.images.shape)
+		print ('train_data.labels.shape', self.train_data.labels.shape)
+		print ('train_data.images:\n', self.train_data.images[0:10, 0:5])
+		print ('train_data.labels:\n', self.train_data.labels[0:10, :])
+		
 	def sigmoid(self, x):
 		return 1/(1+np.exp(-x))
 	def delt_sigmoid(self, x):
@@ -102,9 +93,10 @@ class CMyRBM:
 		print (metrics.confusion_matrix(real_label, pred_label, np.unique(real_label)))
 
 	def my_rbm(self):
-		X = np.hstack((self.train_x, self.train_y)) ## 训练X:Y的联合分布 ##
-		Y = self.train_y
-		input_node_num  = X.shape[1]
+		#X = np.hstack((self.train_x, self.train_y)) ## 训练X:Y的联合分布 ##
+		#Y = self.train_y
+
+		input_node_num  = self.train_data.images.shape[1]
 		print ('input_node_num:', input_node_num, \
 				'x_node_num:', self.train_x.shape[1], \
 				'y_node_num:', self.train_y.shape[1])
@@ -114,28 +106,32 @@ class CMyRBM:
 					(input_node_num, hidden_node_num))
 		self.B = np.zeros((hidden_node_num))
 		self.C = np.zeros((input_node_num))
-		k_step = self.k_step
 
 		for i in xrange(self.iternum):
-			del_W, del_B, del_C = self.getKCDGrad(X, k=k_step)
-			self.W = self.W + self.learningrate * del_W
-			self.B = self.B + self.learningrate * del_B
-			self.C = self.C + self.learningrate * del_C
+			train_x_batch, train_y_batch = self.train_data.next_batch(1000)
+			train_x_batch = np.where(train_x_batch>0, 1, 0)
+			train_y_batch = self.single2onehotmat(train_y_batch)
+			X = np.hstack((train_x_batch, train_y_batch))
+			del_W, del_B, del_C = self.getKCDGrad(X, self.k_step)
+			self.W = self.W - self.learningrate * del_W
+			self.B = self.B - self.learningrate * del_B
+			self.C = self.C - self.learningrate * del_C
 			if i%100==0:
 				h_sample = self.Sample_h_given_v(X)
 				v_sample = self.Sample_v_given_h(h_sample)
 				mean_error = self.comp_mean_sum_error(X, v_sample)
 				print ('iter:', i, '\tmean error of training data:', mean_error)
-				pred_error = self.compute_pred_error(self.train_x, self.train_y)
+				pred_error = self.compute_pred_error(train_x_batch, train_y_batch)
 				print ('iter:', i, '\ttrain_predict training data:', pred_error)
 				pred_error = self.compute_pred_error(self.test_x, self.test_y)
 				print ('iter:', i, '\ttest_predict  testing  data:', pred_error)
 			if i%500==0:
 				## get the sample of some test ##
 				print ('=====================================')
-				input_test = self.train_x[0:10, :]
-				output_test= self.train_y[0:10, :]
+				input_test = train_x_batch[0:10, :]
+				output_test= train_y_batch[0:10, :]
 				self.sample_test_print(input_test, output_test)
+				print ('=====================================')
 		pass
 	def compute_pred_error(self, only_x, only_y):
 		x_row, x_col = only_x.shape
@@ -147,7 +143,7 @@ class CMyRBM:
 	def VotePredLabel(self, y_sample, only_y):
 		y_sample_label = self.get_label_by_kspan(y_sample)
 		y_real_label   = self.get_label_by_kspan(only_y)
-		return np.mean((y_real_label-y_sample_label)**2)
+		return np.mean(np.equal(y_real_label, y_sample_label))
 	def get_label_by_kspan(self, y_mat):
 		k_span   = self.k_span
 		y_row, y_col = y_mat.shape
@@ -228,6 +224,6 @@ class CMyRBM:
 		pass
 
 if __name__=='__main__':
-	CTest = CMyRBM(hidden_num=150, iternum=15000, learningrate=0.0015, k_span=4, k_step=2)
+	CTest = CMyRBM(hidden_num=150, iternum=15000, learningrate=0.000005)
 	CTest.read_data_split()
 	CTest.my_rbm()
