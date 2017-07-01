@@ -6,7 +6,8 @@
 ## @reference  : 《Training Restricted Boltzmann Machines: An Introduction》
 ## @what-to-do : try to make a rbm by hand with two approximal-grad method 
 ##               1) k-step CD-Approximate Gradient
-##               2) k-step parallel tempering Approxiamte Gradient
+##               2) 1-step PCD-Approximate Gradient
+##               3) k-step parallel tempering Approxiamte Gradient
 
 from __future__ import division
 from __future__ import print_function
@@ -17,27 +18,31 @@ from sklearn import metrics
 from sklearn import datasets
 from sklearn.cross_validation import train_test_split
 
-logging.basicConfig(
-        level   = logging.DEBUG,
-        format  = '%(asctime)s %(filename)s[line:%(lineno)d] %(funcName)s %(levelname)s %(message)s',
-        datefmt = '%Y-%m-%d %H:%M:%S',
-        filename= './debug.log',
-        filemode= 'aw'
-        )
 
 class CMyRBM:
-	def __init__(self):
+	def __init__(self, hidden_num = 150, iternum=1000, learningrate=0.05):
 		self.train_x = ''
 		self.train_y = ''
 		self.test_x  = ''
 		self.test_y  = ''
 		self.model   = ''
+		self.W = ''
+		self.B = ''
+		self.C = ''
+		self.HNum = hidden_num
+		self.iternum = iternum
+		self.learningrate = learningrate
 	def __del__(self):
 		self.train_x = ''
 		self.train_y = ''
 		self.test_x  = ''
 		self.test_y  = ''
 		self.model   = ''
+		self.W = ''
+		self.B = ''
+		self.C = ''
+		self.iternum = ''
+		self.learningrate = ''
 	def single2onehotmat(self, vec):
 		# (m,) -> (m, 10), here #
 		row = vec.shape[0]
@@ -68,69 +73,22 @@ class CMyRBM:
 	def delt_h(self, x):
 		return -np.exp(-x)/((1+np.exp(-x))**2)
 		#return self.sigmoid(x) * (1-self.sigmoid(x))
-	def make_label_pred(self, pred_mat):
-		return np.argmax(pred_mat, axis=1)
-
+	def make_matrix2label(self, label_mat):
+		return np.argmax(label_mat, axis=1)
 	def comp_mean_error(self, y, y_pred):
 		return np.mean(y_pred - y, axis = 1)
 	def comp_mean_sum_error(self, y, y_pred):
 		return np.mean((y_pred - y)**2)
 
-	def compute_confusion(self, W_1, W_2, x, y, b_1, b_2):
-		Hid_input = np.dot(x, W_1) + b_1            ## (m*64)*(64*100) --> (m*100)
-		Hid_output= self.sigmoid(Hid_input)         ## (m*100)         --> (m*100)
-		pred_input= np.dot(Hid_output, W_2) + b_2   ## (m*100)*(100*10)--> (m*10)
-		pred      = self.sigmoid(pred_input)        ## (m*10)          --> (m*10)
-		pred_label= self.make_label_pred(pred)
-		real_label= self.make_label_pred(y)
+	def compute_confusion(self, real_label, prob_label):
 		print ('accuracy : ', metrics.accuracy_score(real_label, pred_label))
 		print ('confusion matrix :')
 		print (metrics.confusion_matrix(real_label, pred_label, np.unique(real_label)))
-		
-	def my_nn(self):
-		hidden_node_num = 100
-		W_1 = np.reshape(np.array(np.random.normal(0, 0.003, 64*hidden_node_num)), (64, hidden_node_num))
-		W_2 = np.reshape(np.array(np.random.normal(0, 0.003, 10*hidden_node_num)), (hidden_node_num, 10))
-		#W_1  = np.zeros((64, hidden_node_num))
-		#W_2  = np.zeros((hidden_node_num, 10))
-		b_1 = np.zeros((100,))
-		b_2 = np.zeros((10,))
-		delta_W_1 = np.zeros((64, hidden_node_num)) ## used to save the delta-of-w1
-		delta_W_2 = np.zeros((hidden_node_num, 10)) ## 
-		iter_num  = 500
-		alpha     = 0.0005
-		for i in xrange(iter_num):
-			# 1) compute predict-y
-			Hid_input = np.dot(self.train_x, W_1) + b_1   ## (m*64)*(64*100) --> (m*100)
-			Hid_output= self.sigmoid(Hid_input)           ## (m*100)         --> (m*100)
-			Hid_output_delt = self.delt_h(Hid_output)
-			pred_input= np.dot(Hid_output, W_2) + b_2     ## (m*100)*(100*10)--> (m*10)
-			pred      = self.sigmoid(pred_input)          ## (m*10)          --> (m*10)
-			pred_delt = self.delt_h(pred)
-			# 1.1) compute label-pred confusion
-			print ('==== testing data ====')
-			self.compute_confusion(W_1, W_2, self.test_x, self.test_y, b_1, b_2)
-			print ('==== training data ====')
-			self.compute_confusion(W_1, W_2, self.train_x, self.train_y, b_1, b_2)
-			# 2) compute delta-each-layer
-			row       = self.train_y.shape[0]
-			#error     = np.mean(pred - self.train_y, 1)   ## (m*10)  --> (m*10)
-			error_3   = pred - self.train_y         ## (m*10)  --> (m*10)
-			delta_3   = error_3 * pred_delt         ## (m*10) .* (m*10)--> (m*10)
-			delta_W_2 = np.dot(Hid_output.T, delta_3)/row   ## (m*100).T*(m*10) --> (100*10)
-			error_2   = np.dot(delta_3, W_2.T)      ## --> (m*100)
-			delta_2   = error_2 * Hid_output_delt   ## --> (m*100)
-			delta_W_1 = np.dot(self.train_x.T, delta_2)/row ## (64*m)*(m*100)   --> (64*100)
-			# 3) update  the par-w
-			W_2 = W_2 - alpha*delta_W_2
-			W_1 = W_1 - alpha*delta_W_1
-			b_2 = b_2 - alpha*np.sum(delta_3, axis=0)/row
-			b_1 = b_1 - alpha*np.sum(delta_2, axis=0)/row
-		pass
 
 	def my_rbm(self):
 		X = self.train_x
 		Y = self.train_y
+<<<<<<< HEAD
 		hidden_node_num = 150
 		#W = np.zeros((64, hidden_node_num))
 		W = np.reshape(np.array(np.random.normal(0, 0.002, 64*hidden_node_num)), (64, hidden_node_num))
@@ -138,39 +96,68 @@ class CMyRBM:
 		C = np.zeros((64))
 		iter_num = 15000
 		alpha    = 1.5
+=======
+		input_node_num  = X.shape[1]
+		hidden_node_num = self.HNum
+		self.W = np.reshape(np.array( \
+					np.random.normal(0, 0.002, input_node_num*hidden_node_num)), 
+					(input_node_num, hidden_node_num))
+		self.B = np.zeros((hidden_node_num))
+		self.C = np.zeros((input_node_num))
+>>>>>>> FETCH_HEAD
 
-		for i in xrange(iter_num):
-			del_W, del_B, del_C = self.getKCDGrad(X,W,B,C,k=10)
-			W = W - alpha*del_W
-			B = B - alpha*del_B
-			C = C - alpha*del_C
+		for i in xrange(self.iternum):
+			del_W, del_B, del_C = self.getKCDGrad(X, k=10)
+			self.W = self.W - self.learningrate * del_W
+			self.B = self.B - self.learningrate * del_B
+			self.C = self.C - self.learningrate * del_C
 			if i%100==0:
-				h_prob  = self.sigmoid(np.dot(X, W)+B)
-				h_sample= self.sample(h_prob)
-				v_prob  = self.sigmoid(np.dot(h_sample, W.T)+C)
-				v_sample= self.sample(v_prob)
+				h_sample = self.Sample_h_given_v(X)
+				v_sample = self.Sample_v_given_h(h_sample)
 				mean_error = self.comp_mean_sum_error(X, v_sample)
 				print ('iter:', i, '\tmean error of training data:', mean_error)
 		pass
-	def getKCDGrad(self, X, W, B, C, k=1):
-		#del_W = np.zeros_like(W)
+	def getKCDGrad(self, X, k=1): # del_W = np.zeros_like(W) #
 		for i in range(k):
 			if i == 0:
 				v_input = X
+<<<<<<< HEAD
 			h_input = np.dot(v_input, W) + B
 			h_prob  = self.sigmoid(h_input)
 			h_sample= self.sample(h_prob)
 			v_prob  = np.dot(h_sample, W.T)+C
 			v_sample= self.sample(v_prob)
+=======
+			h_sample= self.Sample_h_given_v(v_input)
+			v_sample= self.Sample_v_given_h(h_sample)
+>>>>>>> FETCH_HEAD
 			v_input = v_sample
-		Prob_h_v0 = self.sigmoid(np.dot(X, W)+B)
-		Prob_h_vk = self.sigmoid(np.dot(v_sample, W)+B)
+		Prob_h_v0 = self.compute_h_prob_given_v(X)
+		Prob_h_vk = self.compute_h_prob_given_v(v_sample)
 		## del_W ==> 原始输入的<i,j> - Kstep的<i,j>
 		del_W = np.dot(X.T, Prob_h_v0) - np.dot(v_sample.T, Prob_h_vk)
 		del_C = np.sum(X - v_sample, axis=0)
 		del_B = np.sum(Prob_h_v0 - Prob_h_vk, axis=0)
 		n_row, n_col = X.shape
 		return del_W/n_row, del_B/n_row, del_C/n_row
+
+	def Sample_h_given_v(self, v):
+		h_prob  = self.compute_h_prob_given_v(v)
+		h_sample= self.sample(h_prob)
+		return  h_sample
+	def compute_h_prob_given_v(self, v):
+		h_input = np.dot(v, self.W) + self.B
+		h_prob  = self.sigmoid(h_input)
+		return  h_prob
+
+	def Sample_v_given_h(self, h):
+		v_prob  = self.compute_v_prob_given_h(h)
+		v_sample= self.sample(v_prob)
+		return  v_sample
+	def compute_v_prob_given_h(self, h):
+		v_input = np.dot(h, self.W.T) + self.C
+		v_prob  = self.sigmoid(v_input)
+		return  v_prob
 
 	def sample(self, prob):
 		if len(prob.shape)==2:
@@ -190,6 +177,6 @@ class CMyRBM:
 		test_pred    = recall_model.predict(self.test_x)
 		print ('reload saved model, test accuracy : ', metrics.accuracy_score(self.test_y, test_pred))
 if __name__=='__main__':
-	CTest = CMyRBM()
+	CTest = CMyRBM(hidden_num=200, iternum=1500, learningrate=0.5)
 	CTest.read_data_split()
 	CTest.my_rbm()
