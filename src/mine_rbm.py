@@ -137,7 +137,7 @@ class CMyRBM:
 		B = np.zeros((hidden_node_num))
 		C = np.zeros((64))
 		iter_num = 15000
-		alpha    = 0.05
+		alpha    = 1.5
 
 		for i in xrange(iter_num):
 			del_W, del_B, del_C = self.getKCDGrad(X,W,B,C,k=10)
@@ -160,7 +160,7 @@ class CMyRBM:
 			h_input = np.dot(v_input, W) + B
 			h_prob  = self.sigmoid(h_input)
 			h_sample= self.sample(h_prob)
-			v_prob  = np.dot(h_sample, W.T)
+			v_prob  = np.dot(h_sample, W.T)+C
 			v_sample= self.sample(v_prob)
 			v_input = v_sample
 		Prob_h_v0 = self.sigmoid(np.dot(X, W)+B)
