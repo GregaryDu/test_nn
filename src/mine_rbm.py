@@ -17,7 +17,8 @@ import numpy as np
 from sklearn import metrics
 from sklearn import datasets
 from sklearn.cross_validation import train_test_split
-
+from tensorflow.examples.tutorials.mnist import input_data
+mnist = input_data.read_data_sets('./MNIST_data', one_hot=True)
 
 class CMyRBM:
 	def __init__(self, hidden_num = 150, iternum=1000, learningrate=0.05, k_step=1, k_span=3):
