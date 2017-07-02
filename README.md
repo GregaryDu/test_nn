@@ -8,4 +8,4 @@
 ####         delta  = delta' * h'   (本层导数)
 ####         DeltaW = delta * h_pre (上层某点)
 
-
+#### some para: hidden=20/40; pix>127,1,0; learning-rate=[0.5,8]; 
