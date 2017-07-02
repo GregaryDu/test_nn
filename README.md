@@ -8,4 +8,8 @@
 ####         delta  = delta' * h'   (本层导数)
 ####         DeltaW = delta * h_pre (上层某点)
 
+#### test_rbm
+#### 1) 实现k-step CD-approximate Gradient; k-step PCD; Parallel-Tempture;
+#### 2) 很奇怪的是，估计的梯度。对参数更新时，用+号求得的mean_error更小！
+#### 3) 现在用2000条数据，训练。一直不能很好地收敛，目测是样本过少，无法对联合分布很好地估计。
 
