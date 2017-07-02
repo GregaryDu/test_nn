@@ -8,4 +8,16 @@
 ####         delta  = delta' * h'   (本层导数)
 ####         DeltaW = delta * h_pre (上层某点)
 
-#### some para: hidden=20/40; pix>127,1,0; learning-rate=[0.5,8]; 
+#### test_rbm
+#### 1) 实现k-step CD-approximate Gradient; k-step PCD; Parallel-Tempture;
+#### 2) 很奇怪的是，估计的梯度。对参数更新时，用+号求得的mean_error更小！
+####    这里理解出现问题了，这里的最大似然估计就没有取负求最小值，而是直接求最大值。当然用+delt了。
+#### 3) 现在用2000条数据，训练。一直不能很好地收敛，目测是样本过少，无法对联合分布很好地估计。
+####    修改为了全部训练数据，在每个mini-batch上的训练mean-error会很小，但是在测试集上的mean-error就是0.22.
+#### 4)some para: hidden=20/40; pix>127,1,0; learning-rate=[0.5,8]; 
+
+#### 关于X:Y作为训练数据，然后只给出X部分，采样Y部分的实验，怎么训练都不能得出很好的效果，一直都是瞎猜的准确率0.1。
+#### 这就很尴尬了，Asja Fischer等人 在《Training RBM: An Introduction》里，给出了这样的思路。但是自己也没有这么搞个实验结果，贴上。
+#### 为啥作者，不弄个类似的实验结果。难道，真的是这么玩不是正确的姿势。
+#### 倒是给了个中间feature的样子。 哎 ╮(╯▽╰)╭
+
