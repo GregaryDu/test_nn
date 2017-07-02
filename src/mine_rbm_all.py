@@ -15,6 +15,7 @@ from __future__ import print_function
 import logging
 import numpy as np
 from sklearn import metrics
+from sklearn import linear_model
 from tensorflow.examples.tutorials.mnist import input_data
 
 class CMyRBM:
@@ -69,8 +70,8 @@ class CMyRBM:
 		self.test_data  = mnist.test
 #		self.train_x = np.where(train_x>0, 1, 0)
 #		self.train_y = self.single2onehotmat(train_y, self.k_span)
-		self.test_x  = np.where(self.test_data.images>0, 1, 0)
-		self.test_y  = self.single2onehotmat(self.test_data.labels)
+		self.test_x  = np.where(self.test_data.images>127, 1, 0)
+		self.test_y  = self.test_data.labels #self.single2onehotmat(self.test_data.labels)
 		
 		print ('train_data.images.shape', self.train_data.images.shape)
 		print ('train_data.labels.shape', self.train_data.labels.shape)
@@ -80,7 +81,7 @@ class CMyRBM:
 		print ('test_x.shape', self.test_x.shape)
 		print ('test_y.shape', self.test_y.shape)
 		print ('test_x:\n',  self.test_x[0:10, 0:5])
-		print ('test_x:\n',  self.test_y[0:10, :])
+		print ('test_y:\n',  self.test_y[0:10])
 		
 	def sigmoid(self, x):
 		return 1/(1+np.exp(-x))
@@ -103,36 +104,42 @@ class CMyRBM:
 		#X = np.hstack((self.train_x, self.train_y)) ## 训练X:Y的联合分布 ##
 		#Y = self.train_y
 		v_x_node_num = self.test_x.shape[1]
-		v_y_node_num = self.test_y.shape[1]
-		input_node_num  = v_x_node_num + v_y_node_num
+		#input_node_num  = v_x_node_num + v_y_node_num
+		input_node_num  = v_x_node_num
 		print ('input_node_num:', input_node_num, \
-				'x_node_num:', self.test_x.shape[1], \
-				'y_node_num:', self.test_y.shape[1])
+				'x_node_num:', self.test_x.shape[1])
+				#'y_node_num:', self.test_y.shape[1])
 		hidden_node_num = self.HNum
 		self.W = np.reshape(np.array( \
 					np.random.normal(0, 0.001, input_node_num*hidden_node_num)), 
 					(input_node_num, hidden_node_num))
 		self.B = np.zeros((hidden_node_num))
 		self.C = np.zeros((input_node_num))
-		TestX  = np.hstack((self.test_x, self.test_y))
+		#TestX  = np.hstack((self.test_x, self.test_y))
+		Test_X_all = self.test_x
+		Test_Y_all = self.test_y
+		TestX = Test_X_all
+		train_X_all = np.where(self.train_data.images>127, 1, 0)
+		train_Y_all = self.train_data.labels
 
 		for i in xrange(self.iternum):
 			train_x_batch, train_y_batch = self.train_data.next_batch(self.batch_size)
 			train_x_batch = np.where(train_x_batch>127, 1, 0)
-			train_y_batch = self.single2onehotmat(train_y_batch)
-			X = np.hstack((train_x_batch, train_y_batch))
+			train_y_batch = train_y_batch #self.single2onehotmat(train_y_batch)
+			#X = np.hstack((train_x_batch, train_y_batch))
+			X = train_x_batch
 			del_W, del_B, del_C = self.getKCDGrad(X, self.k_step)
 			self.W = self.W + self.learningrate * del_W
 			self.B = self.B + self.learningrate * del_B
 			self.C = self.C + self.learningrate * del_C
 			if i%100==0:
-				h_sample = self.Sample_h_given_v(X)
-				v_sample = self.Sample_v_given_h(h_sample)
-				train_mean_error = self.comp_mean_sum_error(X, v_sample)
+				train_h_sample = self.Sample_h_given_v(X)
+				train_v_sample = self.Sample_v_given_h(train_h_sample)
+				train_mean_error = self.comp_mean_sum_error(X, train_v_sample)
 				#print ('iter:', i, '\tmean error of this-batch-input data:            :', mean_error)
-				h_sample = self.Sample_h_given_v(TestX)
-				v_sample = self.Sample_v_given_h(h_sample)
-				test_mean_error = self.comp_mean_sum_error(TestX, v_sample)
+				test_h_sample = self.Sample_h_given_v(TestX)
+				test_v_sample = self.Sample_v_given_h(test_h_sample)
+				test_mean_error = self.comp_mean_sum_error(TestX, test_v_sample)
 				print ('iter:', i, '\tmean error of this-batch-input data : ', train_mean_error, '\tall-test-input data : ', test_mean_error)
 #				power_e, pred_a = self.compute_pred_error(train_x_batch, train_y_batch)
 #				print ('iter:', i, '\ttrain_predict training  data: power_error:', power_e, 'pred_accucy:', pred_a) 
@@ -145,7 +152,19 @@ class CMyRBM:
 #				output_test= train_y_batch[0:10, :]
 #				self.sample_test_print(input_test, output_test)
 #				print ('=====================================')
-		pass
+				## use this reconstructed training-dta to train an soft-max classifier ##
+				logistic = linear_model.LogisticRegression(penalty='l2', max_iter=300, solver='newton-cg', multi_class='multinomial')
+				train_all_h_sample = self.Sample_h_given_v(train_X_all)
+				logistic.fit(train_all_h_sample, train_Y_all)
+				## pred using this-model ##
+				train_accuracy     = logistic.score(train_all_h_sample, train_Y_all)
+				test_all_h_sample  = self.Sample_h_given_v(Test_X_all)
+				print ('test_all_h_sample.shape:', test_all_h_sample.shape)
+				test_accuracy      = logistic.score(test_all_h_sample,  Test_Y_all)
+				test_pred_lab      = logistic.predict(test_all_h_sample)
+				print ('iter:', i, '\tall-train-input data accuracy is   : ', train_accuracy, '\tall-test-input accuracy : ', test_accuracy)
+				print (metrics.confusion_matrix(self.test_y, test_pred_lab, np.unique(self.test_y)))
+
 	def compute_pred_error(self, only_x, only_y):
 		x_row, x_col = only_x.shape
 		print ('in compute_pred_error function:', 'x_row:', x_row, 'x_col:', x_col)
@@ -243,6 +262,6 @@ class CMyRBM:
 		pass
 
 if __name__=='__main__':
-	CTest = CMyRBM(hidden_num=40, iternum=15000, learningrate=8.0, batch_size=200, k_step=1, k_span=1)
+	CTest = CMyRBM(hidden_num=300, iternum=15000, learningrate=0.3, batch_size=100, k_step=1, k_span=1)
 	CTest.read_data_split()
 	CTest.my_rbm()
