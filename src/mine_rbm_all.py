@@ -18,7 +18,7 @@ from sklearn import metrics
 from tensorflow.examples.tutorials.mnist import input_data
 
 class CMyRBM:
-	def __init__(self, hidden_num = 150, iternum=1000, learningrate=0.05, k_step=1, k_span=3):
+	def __init__(self, hidden_num = 150, iternum=1000, learningrate=0.05, k_step=1, k_span=3, batch_size=1000):
 		self.train_x = ''
 		self.train_y = ''
 		self.test_x  = ''
@@ -31,6 +31,7 @@ class CMyRBM:
 		self.k_step = k_step
 		self.k_span = k_span
 		self.iternum = iternum
+		self.batch_size = batch_size
 		self.learningrate = learningrate
 	def __del__(self):
 		self.train_x = ''
@@ -109,14 +110,15 @@ class CMyRBM:
 				'y_node_num:', self.test_y.shape[1])
 		hidden_node_num = self.HNum
 		self.W = np.reshape(np.array( \
-					np.random.normal(0, 0.002, input_node_num*hidden_node_num)), 
+					np.random.normal(0, 0.001, input_node_num*hidden_node_num)), 
 					(input_node_num, hidden_node_num))
 		self.B = np.zeros((hidden_node_num))
 		self.C = np.zeros((input_node_num))
+		TestX  = np.hstack((self.test_x, self.test_y))
 
 		for i in xrange(self.iternum):
-			train_x_batch, train_y_batch = self.train_data.next_batch(1000)
-			train_x_batch = np.where(train_x_batch>0, 1, 0)
+			train_x_batch, train_y_batch = self.train_data.next_batch(self.batch_size)
+			train_x_batch = np.where(train_x_batch>127, 1, 0)
 			train_y_batch = self.single2onehotmat(train_y_batch)
 			X = np.hstack((train_x_batch, train_y_batch))
 			del_W, del_B, del_C = self.getKCDGrad(X, self.k_step)
@@ -126,27 +128,31 @@ class CMyRBM:
 			if i%100==0:
 				h_sample = self.Sample_h_given_v(X)
 				v_sample = self.Sample_v_given_h(h_sample)
-				mean_error = self.comp_mean_sum_error(X, v_sample)
-				print ('iter:', i, '\tmean error of training data:', mean_error)
-				pred_error = self.compute_pred_error(train_x_batch, train_y_batch)
-				print ('iter:', i, '\ttrain_predict training data:', pred_error)
-				pred_error = self.compute_pred_error(self.test_x, self.test_y)
-				print ('iter:', i, '\ttest_predict  testing  data:', pred_error)
-			if i%500==0:
-				## get the sample of some test ##
-				print ('=====================================')
-				input_test = train_x_batch[0:10, :]
-				output_test= train_y_batch[0:10, :]
-				self.sample_test_print(input_test, output_test)
-				print ('=====================================')
+				train_mean_error = self.comp_mean_sum_error(X, v_sample)
+				#print ('iter:', i, '\tmean error of this-batch-input data:            :', mean_error)
+				h_sample = self.Sample_h_given_v(TestX)
+				v_sample = self.Sample_v_given_h(h_sample)
+				test_mean_error = self.comp_mean_sum_error(TestX, v_sample)
+				print ('iter:', i, '\tmean error of this-batch-input data : ', train_mean_error, '\tall-test-input data : ', test_mean_error)
+#				power_e, pred_a = self.compute_pred_error(train_x_batch, train_y_batch)
+#				print ('iter:', i, '\ttrain_predict training  data: power_error:', power_e, 'pred_accucy:', pred_a) 
+#				power_e, pred_a = self.compute_pred_error(self.test_x, self.test_y)
+#				print ('iter:', i, '\ttest_predict  testing   data: power_error:', power_e, 'pred_accucy:', pred_a)
+#			if i%500==0:
+#				## get the sample of some test ##
+#				print ('=====================================')
+#				input_test = train_x_batch[0:10, :]
+#				output_test= train_y_batch[0:10, :]
+#				self.sample_test_print(input_test, output_test)
+#				print ('=====================================')
 		pass
 	def compute_pred_error(self, only_x, only_y):
 		x_row, x_col = only_x.shape
 		print ('in compute_pred_error function:', 'x_row:', x_row, 'x_col:', x_col)
 		V_sample     = self.get_partial_pred_by_partial_input(only_x)
 		mean_error   = np.mean((only_y-V_sample)**2)
-		pred_error   = self.VotePredLabel(V_sample, only_y)
-		return pred_error, mean_error
+		pred_accucy  = self.VotePredLabel(V_sample, only_y)
+		return mean_error, pred_accucy
 	def VotePredLabel(self, y_sample, only_y):
 		y_sample_label = self.get_label_by_kspan(y_sample)
 		y_real_label   = self.get_label_by_kspan(only_y)
@@ -177,11 +183,17 @@ class CMyRBM:
 	def sample_test_print(self, only_x, only_y):
 		x_row, x_col = only_x.shape
 		V_sample= self.get_partial_pred_by_partial_input(only_x)
+
+		v_pred_label = self.get_label_by_kspan(V_sample)
+		v_real_label = self.get_label_by_kspan(only_y)
+
 		y_row, y_col = only_y.shape
 		print ('x_row:', x_row, 'x_col:', x_col, 'y_row:', y_row, 'y_col:', y_col)
 		for i in xrange(y_row):
 			print ('sample:', i, 'real_y:', [int(j) for j in only_y[i, :]])
 			print ('sample:', i, 'pred_y:', [int(j) for j in V_sample[i, :]])
+			print ('sample:', i, 'real_y:', int(v_real_label[i]), 'pred_y:', int(v_pred_label[i]))
+		print ('sample above:', np.mean(np.equal(v_pred_label, v_real_label)))
 			
 	def getKCDGrad(self, X, k=1): # del_W = np.zeros_like(W) #
 		for i in range(k):
@@ -231,6 +243,6 @@ class CMyRBM:
 		pass
 
 if __name__=='__main__':
-	CTest = CMyRBM(hidden_num=150, iternum=15000, learningrate=0.00015)
+	CTest = CMyRBM(hidden_num=40, iternum=15000, learningrate=8.0, batch_size=200, k_step=1, k_span=1)
 	CTest.read_data_split()
 	CTest.my_rbm()
