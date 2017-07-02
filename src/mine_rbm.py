@@ -118,9 +118,9 @@ class CMyRBM:
 
 		for i in xrange(self.iternum):
 			del_W, del_B, del_C = self.getKCDGrad(X, k=k_step)
-			self.W = self.W - self.learningrate * del_W
-			self.B = self.B - self.learningrate * del_B
-			self.C = self.C - self.learningrate * del_C
+			self.W = self.W + self.learningrate * del_W
+			self.B = self.B + self.learningrate * del_B
+			self.C = self.C + self.learningrate * del_C
 			if i%100==0:
 				h_sample = self.Sample_h_given_v(X)
 				v_sample = self.Sample_v_given_h(h_sample)
@@ -228,6 +228,6 @@ class CMyRBM:
 		pass
 
 if __name__=='__main__':
-	CTest = CMyRBM(hidden_num=150, iternum=15000, learningrate=0.000005)
+	CTest = CMyRBM(hidden_num=150, iternum=15000, learningrate=0.0015, k_span=4, k_step=2)
 	CTest.read_data_split()
 	CTest.my_rbm()

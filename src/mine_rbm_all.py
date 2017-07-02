@@ -70,10 +70,16 @@ class CMyRBM:
 #		self.train_y = self.single2onehotmat(train_y, self.k_span)
 		self.test_x  = np.where(self.test_data.images>0, 1, 0)
 		self.test_y  = self.single2onehotmat(self.test_data.labels)
+		
 		print ('train_data.images.shape', self.train_data.images.shape)
 		print ('train_data.labels.shape', self.train_data.labels.shape)
 		print ('train_data.images:\n', self.train_data.images[0:10, 0:5])
-		print ('train_data.labels:\n', self.train_data.labels[0:10, :])
+		print ('train_data.labels:\n', self.train_data.labels[0:10])
+		
+		print ('test_x.shape', self.test_x.shape)
+		print ('test_y.shape', self.test_y.shape)
+		print ('test_x:\n',  self.test_x[0:10, 0:5])
+		print ('test_x:\n',  self.test_y[0:10, :])
 		
 	def sigmoid(self, x):
 		return 1/(1+np.exp(-x))
@@ -95,11 +101,12 @@ class CMyRBM:
 	def my_rbm(self):
 		#X = np.hstack((self.train_x, self.train_y)) ## 训练X:Y的联合分布 ##
 		#Y = self.train_y
-
-		input_node_num  = self.train_data.images.shape[1]
+		v_x_node_num = self.test_x.shape[1]
+		v_y_node_num = self.test_y.shape[1]
+		input_node_num  = v_x_node_num + v_y_node_num
 		print ('input_node_num:', input_node_num, \
-				'x_node_num:', self.train_x.shape[1], \
-				'y_node_num:', self.train_y.shape[1])
+				'x_node_num:', self.test_x.shape[1], \
+				'y_node_num:', self.test_y.shape[1])
 		hidden_node_num = self.HNum
 		self.W = np.reshape(np.array( \
 					np.random.normal(0, 0.002, input_node_num*hidden_node_num)), 
@@ -113,9 +120,9 @@ class CMyRBM:
 			train_y_batch = self.single2onehotmat(train_y_batch)
 			X = np.hstack((train_x_batch, train_y_batch))
 			del_W, del_B, del_C = self.getKCDGrad(X, self.k_step)
-			self.W = self.W - self.learningrate * del_W
-			self.B = self.B - self.learningrate * del_B
-			self.C = self.C - self.learningrate * del_C
+			self.W = self.W + self.learningrate * del_W
+			self.B = self.B + self.learningrate * del_B
+			self.C = self.C + self.learningrate * del_C
 			if i%100==0:
 				h_sample = self.Sample_h_given_v(X)
 				v_sample = self.Sample_v_given_h(h_sample)
@@ -224,6 +231,6 @@ class CMyRBM:
 		pass
 
 if __name__=='__main__':
-	CTest = CMyRBM(hidden_num=150, iternum=15000, learningrate=0.000005)
+	CTest = CMyRBM(hidden_num=150, iternum=15000, learningrate=0.00015)
 	CTest.read_data_split()
 	CTest.my_rbm()
