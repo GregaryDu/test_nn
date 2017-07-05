@@ -20,11 +20,8 @@ from tensorflow.examples.tutorials.mnist import input_data
 
 class CMyRBM:
 	def __init__(self, hidden_num = 150, iternum=1000, learningrate=0.05, k_step=1, k_span=3, batch_size=1000):
-		self.train_x = ''
-		self.train_y = ''
-		self.test_x  = ''
-		self.test_y  = ''
-		self.model   = ''
+		self.train_data = ''
+		self.train_data = ''
 		self.W = ''
 		self.B = ''
 		self.C = ''
@@ -35,11 +32,8 @@ class CMyRBM:
 		self.batch_size = batch_size
 		self.learningrate = learningrate
 	def __del__(self):
-		self.train_x = ''
-		self.train_y = ''
-		self.test_x  = ''
-		self.test_y  = ''
-		self.model   = ''
+		self.train_data = ''
+		self.test_data  = ''
 		self.W = ''
 		self.B = ''
 		self.C = ''
