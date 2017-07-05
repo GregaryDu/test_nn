@@ -8,6 +8,13 @@
 ####         delta  = delta' * h'   (本层导数)
 ####         DeltaW = delta * h_pre (上层某点)
 
+#### test_bpnn_all
+#### 1) 使用mini-batch training 
+#### 2) 模块化初始化，前向传播过程，后向传播过程，并存储中间结果 
+#### 3) 
+
+
+
 #### test_rbm
 #### 1) 实现k-step CD-approximate Gradient; k-step PCD; Parallel-Tempture;
 #### 2) 很奇怪的是，估计的梯度。对参数更新时，用+号求得的mean_error更小！
