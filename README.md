@@ -7,6 +7,7 @@
 #### notice: delta' = 后层传递过来  (或者直接本层做差)
 ####         delta  = delta' * h'   (本层导数)
 ####         DeltaW = delta * h_pre (上层某点)
+'''
 
 #### test_bpnn_all
 #### 1) 使用mini-batch training 
@@ -32,4 +33,4 @@
 #### 这就很尴尬了，Asja Fischer等人 在《Training RBM: An Introduction》里，给出了这样的思路。但是自己也没有这么搞个实验结果，贴上。
 #### 为啥作者，不弄个类似的实验结果。难道，真的是这么玩不是正确的姿势。
 #### 倒是给了个中间feature的样子。 哎 ╮(╯▽╰)╭
-
+#### 后面想想怎么用，是不是可以试下 只用prob做输入，连续化。不再用现在的二元随机状态值。！
