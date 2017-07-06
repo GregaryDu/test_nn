@@ -28,7 +28,7 @@ DW[0]-DB[0]        |  DW[1]-DB[1]          |   DW[2]-DB[2]        |    DW[3]-DB[
 ## =========================================== ##
 
 class CMyNN:
-	def __init__(self, hidden_nodes_list=[10, 10], batch_size=100, epoch=100):
+	def __init__(self, hidden_nodes_list=[10, 10], batch_size=100, epoch=100, lr=0.5):
 		self.train_data = ''
 		self.test_data  = ''
 		self.model      = ''
@@ -36,6 +36,7 @@ class CMyNN:
 		self.B          = []
 		self.C          = []
 		self.middle_res = {}
+		self.lr         = lr
 		self.epoch      = epoch
 		self.batch_size = batch_size
 		self.layer_num  = len(hidden_nodes_list)+2
@@ -48,6 +49,7 @@ class CMyNN:
 		self.B          = []
 		self.C          = []
 		self.middle_res = {}
+		self.lr         = ''
 		self.epoch      = ''
 		self.batch_size = ''
 		self.layer_num  = ''
@@ -139,8 +141,8 @@ class CMyNN:
 			#		'\tself.middle_res[delt_W].shape:\t', self.middle_res['delt_W'][layer_num].shape)
 			#print ('layer_num:\t', layer_num, '\tself.B.shape:\t', self.B[layer_num].shape, \
 			#		'\tself.middle_res[delt_B].shape:\t', self.middle_res['delt_B'][layer_num].shape)
-			self.W[layer_num] -= self.middle_res['delt_W'][layer_num]
-			self.B[layer_num] -= self.middle_res['delt_B'][layer_num]
+			self.W[layer_num] -= self.lr * self.middle_res['delt_W'][layer_num]
+			self.B[layer_num] -= self.lr * self.middle_res['delt_B'][layer_num]
 
 	def my_nn(self):
 
@@ -173,5 +175,7 @@ class CMyNN:
 		return accuracy, confu_mat
 
 if __name__=='__main__':
-	CTest = CMyNN(hidden_nodes_list=[100], batch_size=100, epoch=100)
+	#CTest = CMyNN(hidden_nodes_list=[100], batch_size=100, epoch=100, lr=1.0)
+	#CTest.my_nn()
+	CTest = CMyNN(hidden_nodes_list=[100, 10], batch_size=200, epoch=100, lr=0.9)
 	CTest.my_nn()
