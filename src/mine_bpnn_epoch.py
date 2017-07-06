@@ -175,7 +175,7 @@ class CMyNN:
 		return accuracy, confu_mat
 
 if __name__=='__main__':
-	#CTest = CMyNN(hidden_nodes_list=[100], batch_size=100, epoch=100, lr=1.0)
-	#CTest.my_nn()
-	CTest = CMyNN(hidden_nodes_list=[100, 10], batch_size=200, epoch=100, lr=0.9)
+	CTest = CMyNN(hidden_nodes_list=[100], batch_size=100, epoch=100, lr=1.0)
 	CTest.my_nn()
+	#CTest = CMyNN(hidden_nodes_list=[100, 10], batch_size=200, epoch=100, lr=0.9)
+	#CTest.my_nn() ## 两层以上hidden-layer就不是特别好调了 ##
