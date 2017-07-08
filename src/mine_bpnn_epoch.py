@@ -4,7 +4,7 @@
 ## @time       : 2017-06-17
 ## @author     : yujianmin
 ## @reference  : http://blog.csdn.net/yujianmin1990/article/details/49935007
-## @what-to-do : try to make a 3-layer-nn by hand (one-input-layer; one-hidden-layer; one-output-layer)
+## @what-to-do : try to make a any-layer-nn by hand (one-input-layer; any-hidden-layer; one-output-layer)
 
 from __future__ import division
 from __future__ import print_function
@@ -12,7 +12,6 @@ from __future__ import print_function
 import logging
 import numpy as np
 from sklearn import metrics
-from sklearn import datasets
 from tensorflow.examples.tutorials.mnist import input_data
 
 ## =========================================== ##
@@ -27,7 +26,7 @@ DW[0]-DB[0]        |  DW[1]-DB[1]          |   DW[2]-DB[2]        |    DW[3]-DB[
 #  DW--delt_W;   DB--delt_B
 ## =========================================== ##
 
-class CMyNN:
+class CMyBPNN:
 	def __init__(self, hidden_nodes_list=[10, 10], batch_size=100, epoch=100, lr=0.5):
 		self.train_data = ''
 		self.test_data  = ''
@@ -151,7 +150,7 @@ class CMyNN:
 			self.W[layer_num] -= self.lr * self.middle_res['delt_W'][layer_num]
 			self.B[layer_num] -= self.lr * self.middle_res['delt_B'][layer_num]
 
-	def my_nn(self):
+	def my_bpnn(self):
 		self.read_data()
 		self.initial_weight_parameters()
 		self.initial_middle_parameters()
@@ -236,10 +235,10 @@ class CMyNN:
 		return accuracy, confu_mat
 
 if __name__=='__main__':
-	#CTest = CMyNN(hidden_nodes_list=[128], batch_size=100, epoch=100, lr=0.5)
-	#CTest.my_nn()
+	CTest = CMyBPNN(hidden_nodes_list=[128], batch_size=100, epoch=100, lr=0.5)
+	CTest.my_bpnn()
 	# epoch: 100  iter: 549800 train_batch_accuracy: 0.98 test_accuracy 0.9717 # [100], batch_size=100, lr=0.05 #
 	# epoch: 3    iter: 201500 train_batch_accuracy: 1.0  test_accuracy 0.9788 # [100], batch_size=100, lr=0.5  #
-	CTest = CMyNN(hidden_nodes_list=[250, 100], batch_size=150, epoch=50, lr=2.0)
-	CTest.my_nn() ## 两层以上hidden-layer就不是特别好调了 ##
+	#CTest = CMyBPNN(hidden_nodes_list=[250, 100], batch_size=150, epoch=50, lr=2.0)
+	#CTest.my_bpnn() ## 两层以上hidden-layer就不是特别好调了 ##
 	# epoch: 50 iter: 54900 train_batch_accuracy: 1.0 test_accuracy 0.9796 # [250, 100], batch_size=50, lr==2.0 #
