@@ -13,7 +13,8 @@
 #### 1) 使用mini-batch training 
 #### 2) 模块化初始化，前向传播过程，后向传播过程，并存储中间结果 
 #### 3) 1-hidden-layer 是比较好优化，2层开始就没法很好地优化了 ？哎！
-
+#### 4) 用tensorflow，想借助下其Optimization.AutoGradient，结果不很友好，对Input-Output这种的是很友好地AutoGradient。
+####    中间加入层级关系，如何有效使用，暂时还没有发现，估计有只是不知道而已 ##
 
 
 #### test_rbm
