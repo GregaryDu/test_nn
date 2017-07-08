@@ -41,6 +41,7 @@ class CMyNN:
 		self.batch_size = batch_size
 		self.layer_num  = len(hidden_nodes_list)+2
 		self.hidden_nodes_list = hidden_nodes_list
+		self.middle_res_file   = './middle.res1'
 	def __del__(self):
 		self.train_data = ''
 		self.test_data  = ''
@@ -54,6 +55,7 @@ class CMyNN:
 		self.batch_size = ''
 		self.layer_num  = ''
 		self.hidden_nodes_list = []
+		self.middle_res_file   = ''
 
 	def read_data(self):
 		mnist = input_data.read_data_sets('./MNIST_data', one_hot=True)
@@ -73,7 +75,16 @@ class CMyNN:
 		return self.sigmoid(self.middle_res['layer_input'][layer_num])
 	def compute_layer_delt(self, layer_num):
 		return self.delt_sigmoid(self.middle_res['layer_input'][layer_num])
-
+	def compute_diff(self, A, B):
+		if len(A) != len(B):
+			print ('A.shape:', A.shape, 'B.shape:', B.shape)
+			return False
+		error_mean= np.mean((A-B)**2)
+		if error_mean>0:
+			print ('(A-B)**2 = ', error_mean)
+			return False
+		else: return True
+			
 	def initial_weight_parameters(self):
 		input_node_num  = self.train_data.images.shape[1]
 		output_node_num = self.train_data.labels.shape[1]
@@ -137,10 +148,6 @@ class CMyNN:
 	def update_weight(self):
 		# for convient, compute from input to output dir #
 		for layer_num in xrange(self.layer_num-1):
-			#print ('layer_num:\t', layer_num, '\tself.W.shape:\t', self.W[layer_num].shape, \
-			#		'\tself.middle_res[delt_W].shape:\t', self.middle_res['delt_W'][layer_num].shape)
-			#print ('layer_num:\t', layer_num, '\tself.B.shape:\t', self.B[layer_num].shape, \
-			#		'\tself.middle_res[delt_B].shape:\t', self.middle_res['delt_B'][layer_num].shape)
 			self.W[layer_num] -= self.lr * self.middle_res['delt_W'][layer_num]
 			self.B[layer_num] -= self.lr * self.middle_res['delt_B'][layer_num]
 
@@ -150,7 +157,6 @@ class CMyNN:
 		self.initial_weight_parameters()
 		self.initial_middle_parameters()
 		iter_num= self.epoch*int(self.train_data.images.shape[0]/self.batch_size)
-
 		for i in xrange(iter_num):
 			batch_x, batch_y = self.train_data.next_batch(self.batch_size)
 			# 1) compute predict-y
@@ -165,8 +171,63 @@ class CMyNN:
 				test_x_prob  = self.compute_output_prob(self.test_data.images)
 				batch_acc, batch_confMat = self.compute_accuracy_confusionMat(batch_y, batch_x_prob)
 				test_acc,  test_confMat  = self.compute_accuracy_confusionMat(self.test_data.labels, test_x_prob)
-				print ('epoch:', int(i/self.batch_size), 'iter:', i, 'train_batch_accuracy:', batch_acc, 'test_accuracy', test_acc)
-	
+				print ('epoch:', int(i/self.train_data.images.shape[0]), 'iter:', i, 'train_batch_accuracy:', batch_acc, 'test_accuracy', test_acc)
+
+	def save_middle_res(self, string_head):
+		handle_w = open(self.middle_res_file, 'aw')
+		for k, v in self.middle_res.iteritems():
+			handle_w.write(str(string_head)+'\n')
+			handle_w.write(str(k)+'\n')
+			if isinstance(v, list):
+				num = 0
+				for i in v:
+					try: shape = i.shape
+					except: shape = '0'
+					handle_w.write('v['+str(num)+'],'+str(shape)+'\n')
+					handle_w.write(str(i)+'\n')
+					num +=1
+		num = 0
+		for i in self.W:
+			try: shape = i.shape
+			except: shape = '0'
+			handle_w.write('W['+str(num)+'],'+str(shape)+'\n')
+			handle_w.write(str(i)+'\n')
+			num +=1
+		num = 0
+		for i in self.B:
+			try: shape = i.shape
+			except: shape = '0'
+			handle_w.write('B['+str(num)+'],'+str(shape)+'\n')
+			handle_w.write(str(i)+'\n')
+			num +=1
+		handle_w.close()
+	def print_para_shape(self):
+		for k, v in self.middle_res.iteritems():
+			str_save = ''
+			if isinstance(v, list):
+				num = 0
+				for i in v:
+					try: shape = i.shape
+					except: shape = '0'
+					str_save += str(k) +'  v['+str(num)+'],'+str(shape)+'\t|\t'
+					num +=1
+			else: str_save = str(k)+':'+str(v)
+			print (str_save.strip('|\t'))
+		num = 0; str_save = ''
+		for i in self.W:
+			try: shape = i.shape
+			except: shape = '0'
+			str_save += 'W['+str(num)+'],'+str(shape)+'\t|\t'
+			num +=1
+		print (str_save.strip('|\t'))
+		num = 0; str_save = ''
+		for i in self.B:
+			try: shape = i.shape
+			except: shape = '0'
+			str_save += 'B['+str(num)+'],'+str(shape)+'\t|\t'
+			num +=1
+		print (str_save.strip('|\t'))
+		
 	def compute_accuracy_confusionMat(self, real_mat, pred_mat):
 		pred_label= self.get_label_pred(pred_mat)
 		real_label= self.get_label_pred(real_mat)
@@ -175,7 +236,9 @@ class CMyNN:
 		return accuracy, confu_mat
 
 if __name__=='__main__':
-	CTest = CMyNN(hidden_nodes_list=[100], batch_size=100, epoch=100, lr=1.0)
+	CTest = CMyNN(hidden_nodes_list=[128], batch_size=100, epoch=100, lr=0.5)
 	CTest.my_nn()
-	#CTest = CMyNN(hidden_nodes_list=[100, 10], batch_size=200, epoch=100, lr=0.9)
+	# epoch: 1000 iter: 549800 train_batch_accuracy: 0.98 test_accuracy 0.9717 # [100], batch_size=100, lr=0.05
+	# epoch: 3    iter: 201500 train_batch_accuracy: 1.0  test_accuracy 0.9788 # [100], batch_size=100, lr=0.5
+	#CTest = CMyNN(hidden_nodes_list=[200, 64], batch_size=100, epoch=50, lr=1.0)
 	#CTest.my_nn() ## 两层以上hidden-layer就不是特别好调了 ##
