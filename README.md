@@ -1,4 +1,4 @@
-#### test_nn
+#### test_nn_single
 #### 1) 随机初始化参数比0-初始化参数要好，更快地找到最优状态。
 #### 2) 初始化的值在0附近微小的扰动是较好的，如果过大扰动，容易全分为一类。
 #### 3) 单纯只有delt(W) += delta(W) 是比较慢地，可以加上moment ，现在搞了个learning-rate=10#
@@ -9,10 +9,10 @@
 ####         DeltaW = delta * h_pre (上层某点)
 '''
 
-#### test_bpnn_all
+#### test_bpnn_epoch
 #### 1) 使用mini-batch training 
 #### 2) 模块化初始化，前向传播过程，后向传播过程，并存储中间结果 
-#### 3) 1-hidden-layer 是比较好优化，2层开始就没法很好地优化了 ？哎！
+#### 3) 1-hidden-layer 是比较好优化，2层就比较困难了# hidden_nodes_list=[250, 100], batch_size=50, lr==2.0 #
 #### 4) 用tensorflow，想借助下其Optimization.AutoGradient，结果不很友好，对Input-Output这种的是很友好地AutoGradient。
 ####    中间加入层级关系，如何有效使用，暂时还没有发现，估计有只是不知道而已 ##
 
