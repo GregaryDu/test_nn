@@ -152,11 +152,11 @@ class CMyNN:
 			self.B[layer_num] -= self.lr * self.middle_res['delt_B'][layer_num]
 
 	def my_nn(self):
-
 		self.read_data()
 		self.initial_weight_parameters()
 		self.initial_middle_parameters()
 		iter_num= self.epoch*int(self.train_data.images.shape[0]/self.batch_size)
+
 		for i in xrange(iter_num):
 			batch_x, batch_y = self.train_data.next_batch(self.batch_size)
 			# 1) compute predict-y
@@ -171,7 +171,7 @@ class CMyNN:
 				test_x_prob  = self.compute_output_prob(self.test_data.images)
 				batch_acc, batch_confMat = self.compute_accuracy_confusionMat(batch_y, batch_x_prob)
 				test_acc,  test_confMat  = self.compute_accuracy_confusionMat(self.test_data.labels, test_x_prob)
-				print ('epoch:', int(i/self.train_data.images.shape[0]), 'iter:', i, 'train_batch_accuracy:', batch_acc, 'test_accuracy', test_acc)
+				print ('epoch:', round(i/self.train_data.images.shape[0], 1), 'iter:', i, 'train_batch_accuracy:', batch_acc, 'test_accuracy', test_acc)
 
 	def save_middle_res(self, string_head):
 		handle_w = open(self.middle_res_file, 'aw')
@@ -236,9 +236,10 @@ class CMyNN:
 		return accuracy, confu_mat
 
 if __name__=='__main__':
-	CTest = CMyNN(hidden_nodes_list=[128], batch_size=100, epoch=100, lr=0.5)
-	CTest.my_nn()
-	# epoch: 1000 iter: 549800 train_batch_accuracy: 0.98 test_accuracy 0.9717 # [100], batch_size=100, lr=0.05
-	# epoch: 3    iter: 201500 train_batch_accuracy: 1.0  test_accuracy 0.9788 # [100], batch_size=100, lr=0.5
-	#CTest = CMyNN(hidden_nodes_list=[200, 64], batch_size=100, epoch=50, lr=1.0)
-	#CTest.my_nn() ## 两层以上hidden-layer就不是特别好调了 ##
+	#CTest = CMyNN(hidden_nodes_list=[128], batch_size=100, epoch=100, lr=0.5)
+	#CTest.my_nn()
+	# epoch: 100  iter: 549800 train_batch_accuracy: 0.98 test_accuracy 0.9717 # [100], batch_size=100, lr=0.05 #
+	# epoch: 3    iter: 201500 train_batch_accuracy: 1.0  test_accuracy 0.9788 # [100], batch_size=100, lr=0.5  #
+	CTest = CMyNN(hidden_nodes_list=[250, 100], batch_size=150, epoch=50, lr=2.0)
+	CTest.my_nn() ## 两层以上hidden-layer就不是特别好调了 ##
+	# epoch: 50 iter: 54900 train_batch_accuracy: 1.0 test_accuracy 0.9796 # [250, 100], batch_size=50, lr==2.0 #
